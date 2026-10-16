@@ -8,7 +8,7 @@ license = "MIT"
 repository = "https://github.com/ziggornif/gg-emu"
 
 [workspace.dependencies]
-z80   = { path = "zig80" }
+z80   = { path = "z80" }
 sn76489 = { path = "sn76489" }
 gg-core = { path = "gg-core" }
 
