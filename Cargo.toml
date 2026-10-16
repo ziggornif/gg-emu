@@ -1,0 +1,19 @@
+[workspace]
+resolver = "3"
+members = ["gg-app","gg-core","sn76489","z80"]
+
+[workspace.package]
+edition = "2024"
+license = "MIT"
+repository = "https://github.com/ziggornif/gg-emu"
+
+[workspace.dependencies]
+z80   = { path = "z80" }
+sn76489 = { path = "sn76489" }
+gg-core = { path = "gg-core" }
+
+[profile.dev.package."*"]
+opt-level = 2
+
+[profile.release]
+lto = "thin"
