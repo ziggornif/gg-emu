@@ -1,2 +1,4 @@
-pub mod bus;
-pub mod registers;
+mod bus;
+mod registers;
+
+pub use bus::Z80Bus;

@@ -130,7 +130,7 @@ impl Registers {
         self.c = value as u8;
     }
 
-    ///Returns the DE pair (D high byte, E low byte).
+    /// Returns the DE pair (D high byte, E low byte).
     pub(crate) fn de(&self) -> u16 {
         ((self.d as u16) << 8) | (self.e as u16)
     }
