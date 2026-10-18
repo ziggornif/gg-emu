@@ -56,6 +56,22 @@ impl Z80 {
         }
     }
 
+    pub fn c(&self) -> u8 {
+        self.registers.c
+    }
+
+    pub fn e(&self) -> u8 {
+        self.registers.e
+    }
+
+    pub fn pc(&self) -> u16 {
+        self.registers.pc
+    }
+
+    pub fn de(&self) -> u16 {
+        self.registers.de()
+    }
+
     /// Executes one instruction and returns the number of T-states it took.
     ///
     /// The caller uses this count to advance the other components (VDP, PSG)
