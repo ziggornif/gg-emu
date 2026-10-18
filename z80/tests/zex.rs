@@ -19,10 +19,14 @@ impl CpmBus {
         let high = (LOAD_ADDRESS >> 8) as u8;
         let low = LOAD_ADDRESS as u8;
 
+        // CP/M page zero, minimal version:
+        // 0x0000: JP LOAD_ADDRESS, entry point (also where the program jumps back when done)
         self.mem[0x0000] = 0xC3;
         self.mem[0x0001] = low;
         self.mem[0x0002] = high;
+        // 0x0005: BDOS entry. The harness handles the call, then this RET returns to the caller
         self.mem[0x0005] = 0xC9;
+        // 0x0006-0x0007: top of memory, read by the program as its stack pointer (LD HL,(0x0006))
         self.mem[0x0006] = 0x00;
         self.mem[0x0007] = 0xF0;
 

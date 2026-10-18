@@ -52,7 +52,7 @@ pub struct Registers {
     pub(crate) iy: u16,
     /// Stack pointer.
     pub(crate) sp: u16,
-    /// Program counter.
+    /// Program counter: address of the next byte to fetch.
     pub(crate) pc: u16,
 
     /// Alternate set (AF', BC', DE', HL'), stored as pairs since it is only
