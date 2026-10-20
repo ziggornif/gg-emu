@@ -27,15 +27,16 @@ enum Im {
 #[derive(Debug)]
 pub struct Z80 {
     /// CPU registers.
-    registers: Registers,
+    pub(crate) registers: Registers,
     /// Maskable interrupts enabled right now.
     iff1: bool,
     /// Copy of IFF1 saved when an NMI clears it, restored by `RETN`.
     iff2: bool,
     /// Set by `HALT`: the CPU waits for an interrupt without advancing PC.
-    halted: bool,
+    pub(crate) halted: bool,
     /// Current maskable interrupt mode.
     im: Im,
+    pub(crate) cycles: u8,
 }
 
 impl Default for Z80 {
@@ -53,6 +54,7 @@ impl Z80 {
             iff2: false,
             halted: false,
             im: Im::Im0,
+            cycles: 0,
         }
     }
 
@@ -82,31 +84,37 @@ impl Z80 {
     /// Panics on an opcode that is not implemented yet, with the opcode and
     /// its address in the message.
     pub fn step<B: Z80Bus>(&mut self, bus: &mut B) -> u8 {
+        self.cycles = 0;
         let opcode = self.fetch_opcode(bus);
-        match opcode {
-            // NOP
-            0x00 => 4,
-            _ => unimplemented!(
-                "opcode {:#04X} at address {:#06X} not implemented",
-                opcode,
-                self.registers.pc.wrapping_sub(1)
-            ),
-        }
+
+        self.exec_base(bus, opcode);
+
+        self.cycles
     }
 
     /// Reads an opcode or a prefix at PC (M1 cycle): advances PC and increments R.
     pub(crate) fn fetch_opcode<B: Z80Bus>(&mut self, bus: &mut B) -> u8 {
         let opcode = self.fetch_byte(bus);
         self.registers.inc_r();
+        self.cycles += 1;
         opcode
     }
 
     /// Reads an operand byte at PC (`n`, `d`, half of `nn`): advances PC, R unchanged.
     /// PC wraps from 0xFFFF to 0x0000.
     pub(crate) fn fetch_byte<B: Z80Bus>(&mut self, bus: &mut B) -> u8 {
-        let val = bus.read(self.registers.pc);
+        let val = self.read_mem(bus, self.registers.pc);
         self.registers.pc = self.registers.pc.wrapping_add(1);
         val
+    }
+
+    pub(crate) fn read_mem<B: Z80Bus>(&mut self, bus: &B, address: u16) -> u8 {
+        self.cycles += 3;
+        bus.read(address)
+    }
+    pub(crate) fn write_mem<B: Z80Bus>(&mut self, bus: &mut B, address: u16, value: u8) {
+        self.cycles += 3;
+        bus.write(address, value);
     }
 }
 
