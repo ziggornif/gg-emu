@@ -1,10 +1,10 @@
+//! Instruction execution, split by opcode prefix, and helpers shared by all prefixes.
+
 use crate::{Z80, Z80Bus};
 
 mod base;
 
 impl Z80 {
-    //! Instruction execution, split by opcode prefix, and helpers shared by all prefixes.
-
     /// Reads the operand at index `n` of the r[] table: B, C, D, E, H, L, (HL), A.
     ///
     /// Index 6 reads memory at the address in HL (one memory cycle, 3 T-states).

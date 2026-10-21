@@ -1,10 +1,10 @@
+//! Unprefixed opcodes, decoded by fields: x (bits 7-6), y (5-3), z (2-0).
+//!
+//! See "Decoding Z80 Opcodes" (z80.info/decoding.htm) for the full table.
+
 use crate::{Z80, Z80Bus};
 
 impl Z80 {
-    //! Unprefixed opcodes, decoded by fields: x (bits 7-6), y (5-3), z (2-0).
-    //!
-    //! See "Decoding Z80 Opcodes" (z80.info/decoding.htm) for the full table.
-
     /// Executes an unprefixed opcode, already fetched by `step()`.
     pub(crate) fn exec_base<B: Z80Bus>(&mut self, bus: &mut B, opcode: u8) {
         let x = opcode >> 6;
