@@ -36,6 +36,7 @@ pub struct Z80 {
     pub(crate) halted: bool,
     /// Current maskable interrupt mode.
     im: Im,
+    /// T-states spent by the current instruction. Reset by `step()`, returned at its end.
     pub(crate) cycles: u8,
 }
 
@@ -108,10 +109,15 @@ impl Z80 {
         val
     }
 
+    /// Reads a byte from memory: one memory cycle, 3 T-states.
+    ///
+    /// The only place, with `write_mem`, that calls the bus for memory accesses.
     pub(crate) fn read_mem<B: Z80Bus>(&mut self, bus: &B, address: u16) -> u8 {
         self.cycles += 3;
         bus.read(address)
     }
+
+    /// Writes a byte to memory: one memory cycle, 3 T-states.
     pub(crate) fn write_mem<B: Z80Bus>(&mut self, bus: &mut B, address: u16, value: u8) {
         self.cycles += 3;
         bus.write(address, value);

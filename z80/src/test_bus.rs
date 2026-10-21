@@ -1,5 +1,8 @@
+//! Minimal bus for unit tests: 64 KiB of flat RAM, no peripherals.
+
 use crate::Z80Bus;
 
+/// 64 KiB of RAM; I/O reads return 0xFF (open bus), I/O writes are ignored.
 pub(crate) struct TestBus {
     mem: Vec<u8>,
 }
