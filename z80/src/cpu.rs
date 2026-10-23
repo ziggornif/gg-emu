@@ -109,6 +109,13 @@ impl Z80 {
         val
     }
 
+    /// Reads a 16-bit operand at PC (`nn`), low byte first: two memory cycles, 6 T-states.
+    pub(crate) fn fetch_word<B: Z80Bus>(&mut self, bus: &mut B) -> u16 {
+        let low = self.fetch_byte(bus);
+        let high = self.fetch_byte(bus);
+        ((high as u16) << 8) | (low as u16)
+    }
+
     /// Reads a byte from memory: one memory cycle, 3 T-states.
     ///
     /// The only place, with `write_mem`, that calls the bus for memory accesses.

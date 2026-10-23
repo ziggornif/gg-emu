@@ -13,6 +13,13 @@ impl TestBus {
             mem: vec![0; 65536],
         }
     }
+
+    /// Creates a bus with `program` loaded at address 0, where PC starts after reset.
+    pub(crate) fn with_program(program: &[u8]) -> Self {
+        let mut bus = Self::new();
+        bus.mem[0..program.len()].copy_from_slice(program);
+        bus
+    }
 }
 
 impl Z80Bus for TestBus {
