@@ -13,6 +13,12 @@ impl TestBus {
             mem: vec![0; 65536],
         }
     }
+
+    pub(crate) fn with_program(program: &[u8]) -> Self {
+        let mut bus = Self::new();
+        bus.mem[0..program.len()].copy_from_slice(program);
+        bus
+    }
 }
 
 impl Z80Bus for TestBus {

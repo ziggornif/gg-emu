@@ -39,6 +39,27 @@ impl Z80 {
         }
     }
 
+    #[allow(dead_code)]
+    pub(crate) fn read_rp(&self, p: u8) -> u16 {
+        match p {
+            0 => self.registers.bc(),
+            1 => self.registers.de(),
+            2 => self.registers.hl(),
+            3 => self.registers.sp,
+            _ => unreachable!("invalid register pair index {p}"),
+        }
+    }
+
+    pub(crate) fn write_rp(&mut self, p: u8, value: u16) {
+        match p {
+            0 => self.registers.set_bc(value),
+            1 => self.registers.set_de(value),
+            2 => self.registers.set_hl(value),
+            3 => self.registers.sp = value,
+            _ => unreachable!("invalid register pair index {p}"),
+        }
+    }
+
     /// Panics on an opcode that is not implemented yet, with the opcode and its address.
     ///
     /// The address is PC − 1: valid for unprefixed opcodes only.
