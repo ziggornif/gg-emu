@@ -39,7 +39,8 @@ impl Z80 {
         }
     }
 
-    #[allow(dead_code)]
+    #[allow(dead_code)] // TODO: remove once ADD HL,rp / INC rp use it
+    /// Reads the register pair at index `p` of the rp[] table: BC, DE, HL, SP.
     pub(crate) fn read_rp(&self, p: u8) -> u16 {
         match p {
             0 => self.registers.bc(),
@@ -50,6 +51,7 @@ impl Z80 {
         }
     }
 
+    /// Writes `value` to the register pair at index `p` of the rp[] table: BC, DE, HL, SP.
     pub(crate) fn write_rp(&mut self, p: u8, value: u16) {
         match p {
             0 => self.registers.set_bc(value),
