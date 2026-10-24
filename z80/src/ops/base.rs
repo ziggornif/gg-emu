@@ -16,6 +16,14 @@ impl Z80 {
         match x {
             0 => match (y, z) {
                 (0, 0) => { /* NOP */ }
+                (3, 0) => {
+                    // JR d
+                    let offset = i16::from(self.fetch_byte(bus).cast_signed());
+                    self.registers.pc = self.registers.pc.wrapping_add_signed(offset);
+
+                    // internal: PC + d computation
+                    self.cycles += 5;
+                }
                 (_, 1) if q == 0 => {
                     // LD rp[p], nn
                     let val = self.fetch_word(bus);
@@ -38,6 +46,14 @@ impl Z80 {
                     let val = self.read_r(bus, z);
                     self.write_r(bus, y, val);
                 }
+            },
+            3 => match (y, z) {
+                (0, 3) => {
+                    // JP nn
+                    let dest = self.fetch_word(bus);
+                    self.registers.pc = dest;
+                }
+                _ => self.unimplemented_opcode(opcode),
             },
             _ => self.unimplemented_opcode(opcode),
         }
@@ -134,5 +150,33 @@ mod tests {
         assert_eq!(cpu.step(&mut bus), 10);
         assert_eq!(cpu.registers.sp, 0x1234);
         assert_eq!(cpu.registers.pc, 3);
+    }
+
+    #[test]
+    fn jp_nn() {
+        let mut bus = TestBus::with_program(&[0xC3, 0x34, 0x12]);
+        let mut cpu = Z80::new();
+
+        assert_eq!(cpu.step(&mut bus), 10);
+        assert_eq!(cpu.registers.pc, 0x1234);
+    }
+
+    #[test]
+    fn jr_forward() {
+        let mut bus = TestBus::with_program(&[0x18, 0x05]);
+        let mut cpu = Z80::new();
+
+        assert_eq!(cpu.step(&mut bus), 12);
+        assert_eq!(cpu.registers.pc, 0x0007);
+    }
+
+    #[test]
+    fn jr_backward() {
+        let mut bus = TestBus::with_program(&[0x18, 0xFE]);
+        let mut cpu = Z80::new();
+
+        assert_eq!(cpu.step(&mut bus), 12);
+        // 0x0000 is also the start value: without the jump, PC would be 0x0002
+        assert_eq!(cpu.registers.pc, 0x0000);
     }
 }
