@@ -176,6 +176,7 @@ mod tests {
         let mut cpu = Z80::new();
 
         assert_eq!(cpu.step(&mut bus), 12);
+        // 0x0000 is also the start value: without the jump, PC would be 0x0002
         assert_eq!(cpu.registers.pc, 0x0000);
     }
 }
