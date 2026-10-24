@@ -24,6 +24,12 @@ impl Z80 {
                     // internal: PC + d computation
                     self.cycles += 5;
                 }
+                (5, 2) => {
+                    // LD HL, (nn)
+                    let address = self.fetch_word(bus);
+                    let val = self.read_mem_word(bus, address);
+                    self.registers.set_hl(val);
+                }
                 (_, 1) if q == 0 => {
                     // LD rp[p], nn
                     let val = self.fetch_word(bus);
@@ -53,6 +59,13 @@ impl Z80 {
                     let dest = self.fetch_word(bus);
                     self.registers.pc = dest;
                 }
+                (7, 1) => {
+                    // LD SP, HL
+                    self.registers.sp = self.registers.hl();
+
+                    // internal: 16-bit transfer HL → SP
+                    self.cycles += 2;
+                }
                 _ => self.unimplemented_opcode(opcode),
             },
             _ => self.unimplemented_opcode(opcode),
@@ -78,7 +91,7 @@ mod tests {
     }
 
     #[test]
-    fn ld_a_hl() {
+    fn ld_a_ind_hl() {
         let mut bus = TestBus::new();
         let mut cpu = Z80::new();
         bus.write(cpu.registers.pc, 0x7E);
@@ -90,7 +103,7 @@ mod tests {
     }
 
     #[test]
-    fn ld_hl_b() {
+    fn ld_ind_hl_b() {
         let mut bus = TestBus::new();
         let mut cpu = Z80::new();
         bus.write(cpu.registers.pc, 0x70);
@@ -122,7 +135,7 @@ mod tests {
     }
 
     #[test]
-    fn ld_hl_n() {
+    fn ld_ind_hl_n() {
         let mut bus = TestBus::with_program(&[0x36, 0x77]);
         let mut cpu = Z80::new();
         cpu.registers.set_hl(0x8000);
@@ -178,5 +191,28 @@ mod tests {
         assert_eq!(cpu.step(&mut bus), 12);
         // 0x0000 is also the start value: without the jump, PC would be 0x0002
         assert_eq!(cpu.registers.pc, 0x0000);
+    }
+
+    #[test]
+    fn ld_hl_ind_nn() {
+        let mut bus = TestBus::with_program(&[0x2A, 0x00, 0x80]);
+        let mut cpu = Z80::new();
+        bus.write(0x8000, 0x34);
+        bus.write(0x8001, 0x12);
+
+        assert_eq!(cpu.step(&mut bus), 16);
+        assert_eq!(cpu.registers.hl(), 0x1234);
+        assert_eq!(cpu.registers.pc, 3);
+    }
+
+    #[test]
+    fn ld_sp_hl() {
+        let mut bus = TestBus::with_program(&[0xF9]);
+        let mut cpu = Z80::new();
+        cpu.registers.set_hl(0x1234);
+
+        assert_eq!(cpu.step(&mut bus), 6);
+        assert_eq!(cpu.registers.sp, 0x1234);
+        assert_eq!(cpu.registers.pc, 1);
     }
 }
