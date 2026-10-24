@@ -124,6 +124,13 @@ impl Z80 {
         bus.read(address)
     }
 
+    /// Reads a 16-bit word from memory at address, low byte first: two memory cycles, 6 T-states.
+    pub(crate) fn read_mem_word<B: Z80Bus>(&mut self, bus: &B, address: u16) -> u16 {
+        let low = self.read_mem(bus, address);
+        let high = self.read_mem(bus, address.wrapping_add(1));
+        ((high as u16) << 8) | (low as u16)
+    }
+
     /// Writes a byte to memory: one memory cycle, 3 T-states.
     pub(crate) fn write_mem<B: Z80Bus>(&mut self, bus: &mut B, address: u16, value: u8) {
         self.cycles += 3;
