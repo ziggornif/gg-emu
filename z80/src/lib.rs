@@ -1,3 +1,4 @@
+mod alu;
 mod bus;
 mod cpu;
 mod ops;
