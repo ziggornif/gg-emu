@@ -77,6 +77,16 @@ impl Z80 {
                     // internal: 16-bit transfer HL → SP
                     self.cycles += 2;
                 }
+                (_, 1) if q == 0 => {
+                    // POP rp2[p]
+                    let val = self.pop_word(bus);
+                    self.write_rp2(p, val);
+                }
+                (_, 5) if q == 0 => {
+                    // PUSH rp2[p]
+                    let val = self.read_rp2(p);
+                    self.push_word(bus, val);
+                }
                 _ => self.unimplemented_opcode(opcode),
             },
             _ => self.unimplemented_opcode(opcode),
@@ -271,5 +281,50 @@ mod tests {
         assert_eq!(cpu.step(&mut bus), 10);
         assert_eq!(cpu.registers.sp, 0x8000);
         assert_eq!(cpu.registers.pc, 0x0003);
+    }
+
+    #[test]
+    fn push_bc() {
+        let mut bus = TestBus::with_program(&[0xC5]);
+        let mut cpu = Z80::new();
+        cpu.registers.set_bc(0x1234);
+        cpu.registers.sp = 0x8000;
+
+        assert_eq!(cpu.step(&mut bus), 11);
+        assert_eq!(cpu.registers.sp, 0x7FFE);
+        assert_eq!(bus.read(0x7FFE), 0x34);
+        assert_eq!(bus.read(0x7FFF), 0x12);
+    }
+
+    #[test]
+    fn pop_af() {
+        let mut bus = TestBus::with_program(&[0xF1]);
+        let mut cpu = Z80::new();
+        cpu.registers.sp = 0x7FFE;
+        bus.write(0x7FFE, 0x5A);
+        bus.write(0x7FFF, 0x12);
+
+        assert_eq!(cpu.step(&mut bus), 10);
+        assert_eq!(cpu.registers.sp, 0x8000);
+        assert_eq!(cpu.registers.af(), 0x125A);
+    }
+
+    #[test]
+    fn push_pop_de() {
+        let mut bus = TestBus::with_program(&[0xD5, 0xD1]);
+        let mut cpu = Z80::new();
+        cpu.registers.set_de(0x1234);
+        cpu.registers.sp = 0x8000;
+
+        assert_eq!(cpu.step(&mut bus), 11);
+        assert_eq!(cpu.registers.sp, 0x7FFE);
+        assert_eq!(bus.read(0x7FFE), 0x34);
+        assert_eq!(bus.read(0x7FFF), 0x12);
+
+        cpu.registers.set_de(0);
+
+        assert_eq!(cpu.step(&mut bus), 10);
+        assert_eq!(cpu.registers.sp, 0x8000);
+        assert_eq!(cpu.registers.de(), 0x1234);
     }
 }
