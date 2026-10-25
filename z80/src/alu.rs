@@ -21,10 +21,7 @@ pub(crate) fn logic_flags(result: u8, half_carry: bool) -> u8 {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        alu::logic_flags,
-        registers::{FLAG_H, FLAG_PV, FLAG_S, FLAG_X, FLAG_Y, FLAG_Z},
-    };
+    use super::*;
 
     #[test]
     fn zero_result() {
