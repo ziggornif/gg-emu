@@ -137,7 +137,7 @@ impl Z80 {
         bus.write(address, value);
     }
 
-    /// Pushes a 16-bit word on the stack, high byte first: SP decreases by 2, two memory cycles, 6 T-states.
+    /// Pushes a 16-bit word on the stack, high byte first: SP decreases by 2, two memory cycles, 7 T-states.
     pub(crate) fn push_word<B: Z80Bus>(&mut self, bus: &mut B, value: u16) {
         let high = (value >> 8) as u8;
         let low = value as u8;
