@@ -2,7 +2,7 @@
 //!
 //! See "Decoding Z80 Opcodes" (z80.info/decoding.htm) for the full table.
 
-use crate::{Z80, Z80Bus};
+use crate::{Z80, Z80Bus, alu::logic_flags};
 
 impl Z80 {
     /// Executes an unprefixed opcode, already fetched by `step()`.
@@ -68,6 +68,27 @@ impl Z80 {
                     let val = self.read_r(bus, z);
                     self.write_r(bus, y, val);
                 }
+            },
+            2 => match (y, z) {
+                (4, _) => {
+                    // AND r[z]
+                    let val = self.read_r(bus, z);
+                    self.registers.a &= val;
+                    self.registers.f = logic_flags(self.registers.a, true);
+                }
+                (5, _) => {
+                    // XOR r[z]
+                    let val = self.read_r(bus, z);
+                    self.registers.a ^= val;
+                    self.registers.f = logic_flags(self.registers.a, false);
+                }
+                (6, _) => {
+                    // OR r[z]
+                    let val = self.read_r(bus, z);
+                    self.registers.a |= val;
+                    self.registers.f = logic_flags(self.registers.a, false);
+                }
+                _ => self.unimplemented_opcode(opcode),
             },
             3 => match (y, z) {
                 (0, 3) => {
@@ -388,5 +409,44 @@ mod tests {
         assert_eq!(cpu.step(&mut bus), 6);
         assert_eq!(cpu.registers.hl(), 0xFFFF);
         assert_eq!(cpu.registers.f, 0x5A);
+    }
+
+    #[test]
+    fn and_b() {
+        let mut bus = TestBus::with_program(&[0xA0]);
+        let mut cpu = Z80::new();
+        cpu.registers.a = 0xF0;
+        cpu.registers.b = 0xAC;
+
+        assert_eq!(cpu.step(&mut bus), 4);
+        assert_eq!(cpu.registers.a, 0xA0);
+        assert_eq!(cpu.registers.f, 0xB4);
+        assert_eq!(cpu.registers.pc, 0x0001);
+    }
+
+    #[test]
+    fn xor_a() {
+        let mut bus = TestBus::with_program(&[0xAF]);
+        let mut cpu = Z80::new();
+        cpu.registers.a = 0x5A;
+
+        assert_eq!(cpu.step(&mut bus), 4);
+        assert_eq!(cpu.registers.a, 0x00);
+        assert_eq!(cpu.registers.f, 0x44);
+        assert_eq!(cpu.registers.pc, 0x0001);
+    }
+
+    #[test]
+    fn or_ind_hl() {
+        let mut bus = TestBus::with_program(&[0xB6]);
+        let mut cpu = Z80::new();
+        cpu.registers.a = 0x01;
+        cpu.registers.set_hl(0x8000);
+        bus.write(0x8000, 0x02);
+
+        assert_eq!(cpu.step(&mut bus), 7);
+        assert_eq!(cpu.registers.a, 0x03);
+        assert_eq!(cpu.registers.f, 0x04);
+        assert_eq!(cpu.registers.pc, 0x0001);
     }
 }
