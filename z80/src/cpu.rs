@@ -136,6 +136,29 @@ impl Z80 {
         self.cycles += 3;
         bus.write(address, value);
     }
+
+    /// Pushes a 16-bit word on the stack, high byte first: SP decreases by 2, two memory cycles, 7 T-states.
+    pub(crate) fn push_word<B: Z80Bus>(&mut self, bus: &mut B, value: u16) {
+        let high = (value >> 8) as u8;
+        let low = value as u8;
+
+        self.registers.sp = self.registers.sp.wrapping_sub(1);
+        self.write_mem(bus, self.registers.sp, high);
+        self.registers.sp = self.registers.sp.wrapping_sub(1);
+        self.write_mem(bus, self.registers.sp, low);
+
+        // internal: SP decrement before the first write
+        self.cycles += 1;
+    }
+
+    /// Pops a 16-bit word from the stack, low byte first: SP increases by 2, two memory cycles, 6 T-states.
+    pub(crate) fn pop_word<B: Z80Bus>(&mut self, bus: &B) -> u16 {
+        let low = self.read_mem(bus, self.registers.sp);
+        self.registers.sp = self.registers.sp.wrapping_add(1);
+        let high = self.read_mem(bus, self.registers.sp);
+        self.registers.sp = self.registers.sp.wrapping_add(1);
+        ((high as u16) << 8) | (low as u16)
+    }
 }
 
 #[cfg(test)]
