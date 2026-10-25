@@ -35,6 +35,22 @@ impl Z80 {
                     let val = self.fetch_word(bus);
                     self.write_rp(p, val);
                 }
+                (_, 3) if q == 0 => {
+                    // INC rp[p]
+                    let val = self.read_rp(p);
+                    self.write_rp(p, val.wrapping_add(1));
+
+                    // internal: 16-bit increment
+                    self.cycles += 2;
+                }
+                (_, 3) if q == 1 => {
+                    // DEC rp[p]
+                    let val = self.read_rp(p);
+                    self.write_rp(p, val.wrapping_sub(1));
+
+                    // internal: 16-bit decrement
+                    self.cycles += 2;
+                }
                 (_, 6) => {
                     // LD r[y], n
                     let val = self.fetch_byte(bus);
@@ -326,5 +342,51 @@ mod tests {
         assert_eq!(cpu.step(&mut bus), 10);
         assert_eq!(cpu.registers.sp, 0x8000);
         assert_eq!(cpu.registers.de(), 0x1234);
+    }
+
+    #[test]
+    fn inc_hl() {
+        let mut bus = TestBus::with_program(&[0x23]);
+        let mut cpu = Z80::new();
+        cpu.registers.set_hl(0x1234);
+
+        assert_eq!(cpu.step(&mut bus), 6);
+        assert_eq!(cpu.registers.hl(), 0x1235);
+    }
+
+    #[test]
+    fn dec_bc_wraps() {
+        let mut bus = TestBus::with_program(&[0x0B]);
+        let mut cpu = Z80::new();
+        cpu.registers.set_bc(0x0000);
+
+        assert_eq!(cpu.step(&mut bus), 6);
+        assert_eq!(cpu.registers.bc(), 0xFFFF);
+    }
+
+    #[test]
+    fn inc_sp_wraps() {
+        let mut bus = TestBus::with_program(&[0x33]);
+        let mut cpu = Z80::new();
+        cpu.registers.sp = 0xFFFF;
+
+        assert_eq!(cpu.step(&mut bus), 6);
+        assert_eq!(cpu.registers.sp, 0x0000);
+    }
+
+    #[test]
+    fn inc_dec_keep_flags() {
+        let mut bus = TestBus::with_program(&[0x23, 0x2B]);
+        let mut cpu = Z80::new();
+        cpu.registers.set_hl(0xFFFF);
+        cpu.registers.f = 0x5A;
+
+        assert_eq!(cpu.step(&mut bus), 6);
+        assert_eq!(cpu.registers.hl(), 0x0000);
+        assert_eq!(cpu.registers.f, 0x5A);
+
+        assert_eq!(cpu.step(&mut bus), 6);
+        assert_eq!(cpu.registers.hl(), 0xFFFF);
+        assert_eq!(cpu.registers.f, 0x5A);
     }
 }
