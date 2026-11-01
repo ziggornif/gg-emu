@@ -24,11 +24,42 @@ impl Z80 {
                     // internal: PC + d computation
                     self.cycles += 5;
                 }
+                (0, 2) => {
+                    // LD (BC), A
+                    self.write_mem(bus, self.registers.bc(), self.registers.a);
+                }
+                (1, 2) => {
+                    // LD A, (BC)
+                    self.registers.a = self.read_mem(bus, self.registers.bc());
+                }
+                (2, 2) => {
+                    // LD (DE), A
+                    self.write_mem(bus, self.registers.de(), self.registers.a);
+                }
+                (3, 2) => {
+                    // LD A, (DE)
+                    self.registers.a = self.read_mem(bus, self.registers.de());
+                }
+                (4, 2) => {
+                    // LD (nn), HL
+                    let address = self.fetch_word(bus);
+                    self.write_mem_word(bus, address, self.registers.hl());
+                }
                 (5, 2) => {
                     // LD HL, (nn)
                     let address = self.fetch_word(bus);
                     let val = self.read_mem_word(bus, address);
                     self.registers.set_hl(val);
+                }
+                (6, 2) => {
+                    // LD (nn), A
+                    let address = self.fetch_word(bus);
+                    self.write_mem(bus, address, self.registers.a);
+                }
+                (7, 2) => {
+                    // LD A, (nn)
+                    let address = self.fetch_word(bus);
+                    self.registers.a = self.read_mem(bus, address);
                 }
                 (_, 1) if q == 0 => {
                     // LD rp[p], nn
@@ -485,6 +516,64 @@ mod tests {
         cpu.registers.f = !FLAG_C;
 
         assert_eq!(cpu.step(&mut bus), 10);
+        assert_eq!(cpu.registers.pc, 0x0003);
+    }
+
+    #[test]
+    fn ld_ind_nn_hl() {
+        let mut bus = TestBus::with_program(&[0x22, 0x34, 0x12]);
+        let mut cpu = Z80::new();
+        cpu.registers.set_hl(0xABCD);
+
+        assert_eq!(cpu.step(&mut bus), 16);
+        assert_eq!(bus.read(0x1234), 0xCD);
+        assert_eq!(bus.read(0x1235), 0xAB);
+        assert_eq!(cpu.registers.pc, 0x0003);
+    }
+
+    #[test]
+    fn ld_ind_bc_a() {
+        let mut bus = TestBus::with_program(&[0x02]);
+        let mut cpu = Z80::new();
+        cpu.registers.set_bc(0x8214);
+        cpu.registers.a = 0x12;
+
+        assert_eq!(cpu.step(&mut bus), 7);
+        assert_eq!(bus.read(0x8214), 0x12);
+        assert_eq!(cpu.registers.pc, 0x0001);
+    }
+
+    #[test]
+    fn ld_a_ind_de() {
+        let mut bus = TestBus::with_program(&[0x1A]);
+        let mut cpu = Z80::new();
+        cpu.registers.set_de(0x8215);
+        bus.write(0x8215, 0x34);
+
+        assert_eq!(cpu.step(&mut bus), 7);
+        assert_eq!(cpu.registers.a, 0x34);
+        assert_eq!(cpu.registers.pc, 0x0001);
+    }
+
+    #[test]
+    fn ld_ind_nn_a() {
+        let mut bus = TestBus::with_program(&[0x32, 0x34, 0x12]);
+        let mut cpu = Z80::new();
+        cpu.registers.a = 0xAB;
+
+        assert_eq!(cpu.step(&mut bus), 13);
+        assert_eq!(bus.read(0x1234), 0xAB);
+        assert_eq!(cpu.registers.pc, 0x0003);
+    }
+
+    #[test]
+    fn ld_a_ind_nn() {
+        let mut bus = TestBus::with_program(&[0x3A, 0x34, 0x12]);
+        let mut cpu = Z80::new();
+        bus.write(0x1234, 0xAB);
+
+        assert_eq!(cpu.step(&mut bus), 13);
+        assert_eq!(cpu.registers.a, 0xAB);
         assert_eq!(cpu.registers.pc, 0x0003);
     }
 }

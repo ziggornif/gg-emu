@@ -137,6 +137,14 @@ impl Z80 {
         bus.write(address, value);
     }
 
+    /// Writes a little-endian word: low byte at address, high byte at address + 1.
+    pub(crate) fn write_mem_word<B: Z80Bus>(&mut self, bus: &mut B, address: u16, value: u16) {
+        let low = value as u8;
+        let high = (value >> 8) as u8;
+        self.write_mem(bus, address, low);
+        self.write_mem(bus, address.wrapping_add(1), high);
+    }
+
     /// Pushes a 16-bit word on the stack, high byte first: SP decreases by 2, two memory cycles, 7 T-states.
     pub(crate) fn push_word<B: Z80Bus>(&mut self, bus: &mut B, value: u16) {
         let high = (value >> 8) as u8;
