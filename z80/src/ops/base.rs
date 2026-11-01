@@ -142,8 +142,7 @@ impl Z80 {
 mod tests {
     use crate::Z80;
     use crate::Z80Bus;
-    use crate::registers::FLAG_C;
-    use crate::registers::FLAG_Z;
+    use crate::registers::{FLAG_C, FLAG_Z};
     use crate::test_bus::TestBus;
 
     #[test]

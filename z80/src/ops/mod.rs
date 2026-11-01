@@ -86,6 +86,9 @@ impl Z80 {
         }
     }
 
+    /// Evaluates condition cc[y] against the current flags.
+    ///
+    /// Pairs share a flag (NZ/Z, NC/C, PO/PE, P/M): even y tests for 0, odd y for 1.
     pub(crate) fn check_cc(&self, y: u8) -> bool {
         match y {
             0 => !self.registers.flag(FLAG_Z),
