@@ -1,6 +1,9 @@
 //! Instruction execution, split by opcode prefix, and helpers shared by all prefixes.
 
-use crate::{Z80, Z80Bus};
+use crate::{
+    Z80, Z80Bus,
+    registers::{FLAG_C, FLAG_PV, FLAG_S, FLAG_Z},
+};
 
 mod base;
 
@@ -80,6 +83,23 @@ impl Z80 {
             2 => self.registers.set_hl(value),
             3 => self.registers.set_af(value),
             _ => unreachable!("invalid register pair index {p}"),
+        }
+    }
+
+    /// Evaluates condition cc[y] against the current flags.
+    ///
+    /// Pairs share a flag (NZ/Z, NC/C, PO/PE, P/M): even y tests for 0, odd y for 1.
+    pub(crate) fn check_cc(&self, y: u8) -> bool {
+        match y {
+            0 => !self.registers.flag(FLAG_Z),
+            1 => self.registers.flag(FLAG_Z),
+            2 => !self.registers.flag(FLAG_C),
+            3 => self.registers.flag(FLAG_C),
+            4 => !self.registers.flag(FLAG_PV),
+            5 => self.registers.flag(FLAG_PV),
+            6 => !self.registers.flag(FLAG_S),
+            7 => self.registers.flag(FLAG_S),
+            _ => unreachable!("invalid condition index {y}"),
         }
     }
 
