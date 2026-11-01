@@ -119,6 +119,13 @@ impl Z80 {
                     let val = self.pop_word(bus);
                     self.write_rp2(p, val);
                 }
+                (_, 2) => {
+                    // JP cc[y], nn
+                    let dest = self.fetch_word(bus);
+                    if self.check_cc(y) {
+                        self.registers.pc = dest;
+                    }
+                }
                 (_, 5) if q == 0 => {
                     // PUSH rp2[p]
                     let val = self.read_rp2(p);
@@ -135,6 +142,8 @@ impl Z80 {
 mod tests {
     use crate::Z80;
     use crate::Z80Bus;
+    use crate::registers::FLAG_C;
+    use crate::registers::FLAG_Z;
     use crate::test_bus::TestBus;
 
     #[test]
@@ -448,5 +457,35 @@ mod tests {
         assert_eq!(cpu.registers.a, 0x03);
         assert_eq!(cpu.registers.f, 0x04);
         assert_eq!(cpu.registers.pc, 0x0001);
+    }
+
+    #[test]
+    fn jp_z_taken() {
+        let mut bus = TestBus::with_program(&[0xCA, 0x34, 0x12]);
+        let mut cpu = Z80::new();
+        cpu.registers.f = FLAG_Z;
+
+        assert_eq!(cpu.step(&mut bus), 10);
+        assert_eq!(cpu.registers.pc, 0x1234);
+    }
+
+    #[test]
+    fn jp_z_not_taken() {
+        let mut bus = TestBus::with_program(&[0xCA, 0x34, 0x12]);
+        let mut cpu = Z80::new();
+        cpu.registers.f = !FLAG_Z;
+
+        assert_eq!(cpu.step(&mut bus), 10);
+        assert_eq!(cpu.registers.pc, 0x0003);
+    }
+
+    #[test]
+    fn jp_c_not_taken() {
+        let mut bus = TestBus::with_program(&[0xDA, 0x34, 0x12]);
+        let mut cpu = Z80::new();
+        cpu.registers.f = !FLAG_C;
+
+        assert_eq!(cpu.step(&mut bus), 10);
+        assert_eq!(cpu.registers.pc, 0x0003);
     }
 }
