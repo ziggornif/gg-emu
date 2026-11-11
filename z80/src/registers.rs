@@ -199,6 +199,13 @@ impl Registers {
         self.af_alt = tmp_af;
     }
 
+    /// Exchanges DE with HL (`EX DE, HL`)
+    pub(crate) fn ex_de_hl(&mut self) {
+        let tmp_de = self.de();
+        self.set_de(self.hl());
+        self.set_hl(tmp_de);
+    }
+
     /// Exchanges BC, DE and HL with BC', DE' and HL' (`EXX`). AF is not affected.
     pub(crate) fn exx(&mut self) {
         let tmp_bc = self.bc();
@@ -431,6 +438,19 @@ mod tests {
         registers.ex_af();
         assert_eq!(registers.af(), 0xFFFF);
         assert_eq!(registers.af_alt, 0x1234);
+    }
+
+    #[test]
+    fn ex_de_hl() {
+        let mut registers = Registers::new();
+        registers.set_de(0x1234);
+        registers.set_hl(0x5678);
+        registers.ex_de_hl();
+        assert_eq!(registers.de(), 0x5678);
+        assert_eq!(registers.hl(), 0x1234);
+        registers.ex_de_hl();
+        assert_eq!(registers.de(), 0x1234);
+        assert_eq!(registers.hl(), 0x5678);
     }
 
     #[test]
