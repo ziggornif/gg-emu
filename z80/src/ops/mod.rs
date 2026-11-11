@@ -6,6 +6,7 @@ use crate::{
 };
 
 mod base;
+mod ed;
 
 impl Z80 {
     /// Reads the operand at index `n` of the r[] table: B, C, D, E, H, L, (HL), A.
@@ -105,12 +106,43 @@ impl Z80 {
 
     /// Panics on an opcode that is not implemented yet, with the opcode and its address.
     ///
-    /// The address is PC − 1: valid for unprefixed opcodes only.
-    pub(crate) fn unimplemented_opcode(&self, opcode: u8) -> ! {
-        unimplemented!(
-            "opcode {:#04X} at address {:#06X} not implemented",
-            opcode,
-            self.registers.pc.wrapping_sub(1)
-        )
+    /// The address is PC − 1 for an unprefixed opcode, PC − 2 for a prefixed one
+    /// (not valid for DD CB / FD CB, where the opcode comes after a displacement).
+    pub(crate) fn unimplemented_opcode(&self, prefix: Option<u8>, opcode: u8) -> ! {
+        match prefix {
+            Some(prefix) => unimplemented!(
+                "opcode {:#04X} {:#04X} at address {:#06X} not implemented",
+                prefix,
+                opcode,
+                self.registers.pc.wrapping_sub(2)
+            ),
+            None => unimplemented!(
+                "opcode {:#04X} at address {:#06X} not implemented",
+                opcode,
+                self.registers.pc.wrapping_sub(1)
+            ),
+        }
+    }
+}
+
+/// Opcode split into its x/y/z/p/q fields (see z80.info/decoding.htm).
+#[derive(Debug, Clone, Copy)]
+struct OpcodeFields {
+    x: u8,
+    y: u8,
+    z: u8,
+    p: u8,
+    q: u8,
+}
+
+impl OpcodeFields {
+    fn decode(opcode: u8) -> Self {
+        let x = opcode >> 6;
+        let y = (opcode >> 3) & 0x07;
+        let z = opcode & 0x07;
+        let p = y >> 1;
+        let q = y & 1;
+
+        Self { x, y, z, p, q }
     }
 }
