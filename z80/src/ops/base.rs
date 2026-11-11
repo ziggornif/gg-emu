@@ -151,6 +151,10 @@ impl Z80 {
                     self.push_word(bus, self.registers.pc);
                     self.registers.pc = dest;
                 }
+                (5, 3) => {
+                    // EX DE, HL
+                    self.registers.ex_de_hl();
+                }
                 (7, 1) => {
                     // LD SP, HL
                     self.registers.sp = self.registers.hl();
@@ -615,6 +619,19 @@ mod tests {
         assert_eq!(cpu.step(&mut bus), 11);
         assert_eq!(cpu.registers.hl(), 0x0000);
         assert_eq!(cpu.registers.f, 0xC5);
+        assert_eq!(cpu.registers.pc, 0x0001);
+    }
+
+    #[test]
+    fn ex_de_hl() {
+        let mut bus = TestBus::with_program(&[0xEB]);
+        let mut cpu = Z80::new();
+        cpu.registers.set_de(0x1234);
+        cpu.registers.set_hl(0x5678);
+
+        assert_eq!(cpu.step(&mut bus), 4);
+        assert_eq!(cpu.registers.de(), 0x5678);
+        assert_eq!(cpu.registers.hl(), 0x1234);
         assert_eq!(cpu.registers.pc, 0x0001);
     }
 }
