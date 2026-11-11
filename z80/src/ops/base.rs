@@ -2,7 +2,10 @@
 //!
 //! See "Decoding Z80 Opcodes" (z80.info/decoding.htm) for the full table.
 
-use crate::{Z80, Z80Bus, alu::logic_flags};
+use crate::{
+    Z80, Z80Bus,
+    alu::{add16, logic_flags},
+};
 
 impl Z80 {
     /// Executes an unprefixed opcode, already fetched by `step()`.
@@ -65,6 +68,16 @@ impl Z80 {
                     // LD rp[p], nn
                     let val = self.fetch_word(bus);
                     self.write_rp(p, val);
+                }
+                (_, 1) if q == 1 => {
+                    // ADD HL, rp[p]
+                    let (val, flags) =
+                        add16(self.registers.hl(), self.read_rp(p), self.registers.f);
+                    self.registers.set_hl(val);
+                    self.registers.f = flags;
+
+                    // internal: 16-bit addition
+                    self.cycles += 7;
                 }
                 (_, 3) if q == 0 => {
                     // INC rp[p]
@@ -575,5 +588,33 @@ mod tests {
         assert_eq!(cpu.step(&mut bus), 13);
         assert_eq!(cpu.registers.a, 0xAB);
         assert_eq!(cpu.registers.pc, 0x0003);
+    }
+
+    #[test]
+    fn add_hl_de() {
+        let mut bus = TestBus::with_program(&[0x19]);
+        let mut cpu = Z80::new();
+        cpu.registers.set_hl(0xABCD);
+        cpu.registers.set_de(0xEF01);
+        cpu.registers.f = 0xC4;
+
+        assert_eq!(cpu.step(&mut bus), 11);
+        assert_eq!(cpu.registers.hl(), 0x9ACE);
+        assert_eq!(cpu.registers.de(), 0xEF01);
+        assert_eq!(cpu.registers.f, 0xDD);
+        assert_eq!(cpu.registers.pc, 0x0001);
+    }
+
+    #[test]
+    fn add_hl_hl() {
+        let mut bus = TestBus::with_program(&[0x29]);
+        let mut cpu = Z80::new();
+        cpu.registers.set_hl(0x8000);
+        cpu.registers.f = 0xC4;
+
+        assert_eq!(cpu.step(&mut bus), 11);
+        assert_eq!(cpu.registers.hl(), 0x0000);
+        assert_eq!(cpu.registers.f, 0xC5);
+        assert_eq!(cpu.registers.pc, 0x0001);
     }
 }
