@@ -589,4 +589,32 @@ mod tests {
         assert_eq!(cpu.registers.a, 0xAB);
         assert_eq!(cpu.registers.pc, 0x0003);
     }
+
+    #[test]
+    fn add_hl_de() {
+        let mut bus = TestBus::with_program(&[0x19]);
+        let mut cpu = Z80::new();
+        cpu.registers.set_hl(0xABCD);
+        cpu.registers.set_de(0xEF01);
+        cpu.registers.f = 0xC4;
+
+        assert_eq!(cpu.step(&mut bus), 11);
+        assert_eq!(cpu.registers.hl(), 0x9ACE);
+        assert_eq!(cpu.registers.de(), 0xEF01);
+        assert_eq!(cpu.registers.f, 0xDD);
+        assert_eq!(cpu.registers.pc, 0x0001);
+    }
+
+    #[test]
+    fn add_hl_hl() {
+        let mut bus = TestBus::with_program(&[0x29]);
+        let mut cpu = Z80::new();
+        cpu.registers.set_hl(0x8000);
+        cpu.registers.f = 0xC4;
+
+        assert_eq!(cpu.step(&mut bus), 11);
+        assert_eq!(cpu.registers.hl(), 0x0000);
+        assert_eq!(cpu.registers.f, 0xC5);
+        assert_eq!(cpu.registers.pc, 0x0001);
+    }
 }
