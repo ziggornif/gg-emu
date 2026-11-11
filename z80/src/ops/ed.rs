@@ -7,6 +7,7 @@ use crate::{
 };
 
 impl Z80 {
+    /// Executes an ED-prefixed opcode, already fetched after the 0xED prefix.
     pub(crate) fn exec_ed<B: Z80Bus>(&mut self, bus: &mut B, opcode: u8) {
         let OpcodeFields { x, y, z, .. } = OpcodeFields::decode(opcode);
 
@@ -74,6 +75,7 @@ mod tests {
         assert_eq!(bus.read(0x2000), 0xAB);
         assert_eq!(bus.read(0x2001), 0x34);
         assert_eq!(cpu.registers.pc, 0x0000);
+        assert_eq!(cpu.registers.r, 2);
 
         // second iter
         assert_eq!(cpu.step(&mut bus), 16);
@@ -84,5 +86,6 @@ mod tests {
         assert_eq!(bus.read(0x2000), 0xAB);
         assert_eq!(bus.read(0x2001), 0xCD);
         assert_eq!(cpu.registers.pc, 0x0002);
+        assert_eq!(cpu.registers.r, 4);
     }
 }
