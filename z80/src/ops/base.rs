@@ -5,16 +5,13 @@
 use crate::{
     Z80, Z80Bus,
     alu::{add16, logic_flags},
+    ops::OpcodeFields,
 };
 
 impl Z80 {
     /// Executes an unprefixed opcode, already fetched by `step()`.
     pub(crate) fn exec_base<B: Z80Bus>(&mut self, bus: &mut B, opcode: u8) {
-        let x = opcode >> 6;
-        let y = (opcode >> 3) & 0x07;
-        let z = opcode & 0x07;
-        let p = y >> 1;
-        let q = y & 1;
+        let OpcodeFields { x, y, z, p, q } = OpcodeFields::decode(opcode);
 
         match x {
             0 => match (y, z) {
@@ -100,7 +97,7 @@ impl Z80 {
                     let val = self.fetch_byte(bus);
                     self.write_r(bus, y, val);
                 }
-                _ => self.unimplemented_opcode(opcode),
+                _ => self.unimplemented_opcode(None, opcode),
             },
             1 => match (y, z) {
                 (6, 6) => {
@@ -132,7 +129,7 @@ impl Z80 {
                     self.registers.a |= val;
                     self.registers.f = logic_flags(self.registers.a, false);
                 }
-                _ => self.unimplemented_opcode(opcode),
+                _ => self.unimplemented_opcode(None, opcode),
             },
             3 => match (y, z) {
                 (0, 3) => {
@@ -154,6 +151,11 @@ impl Z80 {
                 (5, 3) => {
                     // EX DE, HL
                     self.registers.ex_de_hl();
+                }
+                (5, 5) => {
+                    // ED prefix
+                    let ed_opcode = self.fetch_opcode(bus);
+                    self.exec_ed(bus, ed_opcode);
                 }
                 (7, 1) => {
                     // LD SP, HL
@@ -179,9 +181,9 @@ impl Z80 {
                     let val = self.read_rp2(p);
                     self.push_word(bus, val);
                 }
-                _ => self.unimplemented_opcode(opcode),
+                _ => self.unimplemented_opcode(None, opcode),
             },
-            _ => self.unimplemented_opcode(opcode),
+            _ => self.unimplemented_opcode(None, opcode),
         }
     }
 }
