@@ -4,7 +4,7 @@
 
 use crate::{
     Z80, Z80Bus,
-    alu::{add16, logic_flags},
+    alu::{add16, logic_flags, rlca},
     ops::OpcodeFields,
 };
 
@@ -16,6 +16,12 @@ impl Z80 {
         match x {
             0 => match (y, z) {
                 (0, 0) => { /* NOP */ }
+                (0, 7) => {
+                    // RLCA
+                    let (a, flags) = rlca(self.registers.a, self.registers.f);
+                    self.registers.a = a;
+                    self.registers.f = flags;
+                }
                 (3, 0) => {
                     // JR d
                     let offset = i16::from(self.fetch_byte(bus).cast_signed());
@@ -634,6 +640,19 @@ mod tests {
         assert_eq!(cpu.step(&mut bus), 4);
         assert_eq!(cpu.registers.de(), 0x5678);
         assert_eq!(cpu.registers.hl(), 0x1234);
+        assert_eq!(cpu.registers.pc, 0x0001);
+    }
+
+    #[test]
+    fn rlca() {
+        let mut bus = TestBus::with_program(&[0x07]);
+        let mut cpu = Z80::new();
+        cpu.registers.a = 0x9C;
+        cpu.registers.f = 0xFF;
+
+        assert_eq!(cpu.step(&mut bus), 4);
+        assert_eq!(cpu.registers.a, 0x39);
+        assert_eq!(cpu.registers.f, 0xED);
         assert_eq!(cpu.registers.pc, 0x0001);
     }
 }

@@ -38,6 +38,19 @@ pub(crate) fn add16(lhs: u16, rhs: u16, flags: u8) -> (u16, u8) {
     (result, f | yx | half | carry)
 }
 
+/// RLCA: rotates `a` left, bit 7 goes to both bit 0 and C. Returns `(result, flags)`.
+///
+/// S, Z and P/V are preserved from `flags`; H and N are reset; Y and X copy bits 5 and 3 of the result.
+#[must_use]
+pub(crate) fn rlca(a: u8, flags: u8) -> (u8, u8) {
+    let f = flags & (FLAG_S | FLAG_Z | FLAG_PV);
+    let result = a.rotate_left(1);
+    let carry = a >> 7;
+    let yx = result & (FLAG_Y | FLAG_X);
+
+    (result, f | yx | carry)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -83,5 +96,15 @@ mod tests {
             add16(0x0001, 0x0002, 0xFF),
             (0x0003, FLAG_S | FLAG_Z | FLAG_PV)
         );
+    }
+
+    #[test]
+    fn rlca_carry() {
+        assert_eq!(rlca(0x9C, 0xFF), (0x39, 0xED));
+    }
+
+    #[test]
+    fn rlca_no_carry() {
+        assert_eq!(rlca(0x6C, 0xFF), (0xD8, 0xCC));
     }
 }
