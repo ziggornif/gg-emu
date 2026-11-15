@@ -49,5 +49,5 @@ CI runs fmt, clippy, tests, `cargo audit` and coverage on every push.
 
 ## License
 
-GNU General Public License v3.0 (see [`LICENSE`](LICENSE)).
+GNU General Public License v3.0 or later (see [`LICENSE`](LICENSE)).
 The zexdoc/zexall test programs in `z80/roms/` are GPL-2.0-or-later, by Frank D. Cringle.
