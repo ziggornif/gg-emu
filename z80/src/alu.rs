@@ -38,6 +38,40 @@ pub(crate) fn add16(lhs: u16, rhs: u16, flags: u8) -> (u16, u8) {
     (result, f | yx | half | carry)
 }
 
+/// DEC r: decrements `value` by one. Returns `(result, flags)`.
+///
+/// S, Z, Y, X from the result; H when the low nibble borrows (low nibble was 0);
+/// P/V on signed overflow (`value` was 0x80); N is set; C is preserved from `flags`.
+#[must_use]
+pub(crate) fn dec8(value: u8, flags: u8) -> (u8, u8) {
+    let result = value.wrapping_sub(1);
+    let f = flags & FLAG_C;
+    let s = result & FLAG_S;
+    let z = if result == 0 { FLAG_Z } else { 0 };
+    let half = if (value & 0x0F) == 0 { FLAG_H } else { 0 };
+    let pv = if value == 0x80 { FLAG_PV } else { 0 };
+    let yx = result & (FLAG_Y | FLAG_X);
+
+    (result, f | s | z | half | pv | yx | FLAG_N)
+}
+
+/// INC r: increments `value` by one. Returns `(result, flags)`.
+///
+/// S, Z, Y, X from the result; H when the low nibble carries (low nibble was 0xF);
+/// P/V on signed overflow (`value` was 0x7F); N is reset; C is preserved from `flags`.
+#[must_use]
+pub(crate) fn inc8(value: u8, flags: u8) -> (u8, u8) {
+    let result = value.wrapping_add(1);
+    let f = flags & FLAG_C;
+    let s = result & FLAG_S;
+    let z = if result == 0 { FLAG_Z } else { 0 };
+    let half = if (value & 0x0F) == 0x0F { FLAG_H } else { 0 };
+    let pv = if value == 0x7F { FLAG_PV } else { 0 };
+    let yx = result & (FLAG_Y | FLAG_X);
+
+    (result, f | s | z | half | pv | yx)
+}
+
 /// RLCA: rotates `a` left, bit 7 goes to both bit 0 and C. Returns `(result, flags)`.
 ///
 /// S, Z and P/V are preserved from `flags`; H and N are reset; Y and X copy bits 5 and 3 of the result.
@@ -149,5 +183,48 @@ mod tests {
     #[test]
     fn cp_yx_from_n() {
         assert_eq!(cp(0x29, 0x28), FLAG_Y | FLAG_X | FLAG_N);
+    }
+
+    #[test]
+    fn dec8_zero() {
+        assert_eq!(dec8(0x01, 0), (0x00, FLAG_Z | FLAG_N));
+    }
+
+    #[test]
+    fn dec8_half() {
+        assert_eq!(dec8(0x10, 0), (0x0F, FLAG_H | FLAG_X | FLAG_N));
+    }
+
+    #[test]
+    fn dec8_overflow() {
+        assert_eq!(
+            dec8(0x80, 0),
+            (0x7F, FLAG_Y | FLAG_H | FLAG_X | FLAG_PV | FLAG_N)
+        );
+    }
+
+    #[test]
+    fn dec8_preserves_c() {
+        assert_eq!(dec8(0x02, 0xFF), (0x01, FLAG_N | FLAG_C));
+    }
+
+    #[test]
+    fn inc8_zero() {
+        assert_eq!(inc8(0xFF, 0), (0x00, FLAG_Z | FLAG_H));
+    }
+
+    #[test]
+    fn inc8_half() {
+        assert_eq!(inc8(0x0F, 0), (0x10, FLAG_H));
+    }
+
+    #[test]
+    fn inc8_overflow() {
+        assert_eq!(inc8(0x7F, 0), (0x80, FLAG_S | FLAG_H | FLAG_PV));
+    }
+
+    #[test]
+    fn inc8_preserves_c() {
+        assert_eq!(inc8(0x01, 0xFF), (0x02, FLAG_C));
     }
 }
