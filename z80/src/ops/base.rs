@@ -4,7 +4,7 @@
 
 use crate::{
     Z80, Z80Bus,
-    alu::{add16, logic_flags, rlca},
+    alu::{add16, cp, logic_flags, rlca},
     ops::OpcodeFields,
 };
 
@@ -153,6 +153,29 @@ impl Z80 {
                     let dest = self.fetch_word(bus);
                     self.push_word(bus, self.registers.pc);
                     self.registers.pc = dest;
+                }
+                (4, 6) => {
+                    // AND n
+                    let n = self.fetch_byte(bus);
+                    self.registers.a &= n;
+                    self.registers.f = logic_flags(self.registers.a, true);
+                }
+                (5, 6) => {
+                    // XOR n
+                    let n = self.fetch_byte(bus);
+                    self.registers.a ^= n;
+                    self.registers.f = logic_flags(self.registers.a, false);
+                }
+                (6, 6) => {
+                    // OR n
+                    let n = self.fetch_byte(bus);
+                    self.registers.a |= n;
+                    self.registers.f = logic_flags(self.registers.a, false);
+                }
+                (7, 6) => {
+                    // CP n
+                    let n = self.fetch_byte(bus);
+                    self.registers.f = cp(self.registers.a, n);
                 }
                 (5, 3) => {
                     // EX DE, HL
@@ -654,5 +677,53 @@ mod tests {
         assert_eq!(cpu.registers.a, 0x39);
         assert_eq!(cpu.registers.f, 0xED);
         assert_eq!(cpu.registers.pc, 0x0001);
+    }
+
+    #[test]
+    fn and_n() {
+        let mut bus = TestBus::with_program(&[0xE6, 0xAC]);
+        let mut cpu = Z80::new();
+        cpu.registers.a = 0xF0;
+
+        assert_eq!(cpu.step(&mut bus), 7);
+        assert_eq!(cpu.registers.a, 0xA0);
+        assert_eq!(cpu.registers.f, 0xB4);
+        assert_eq!(cpu.registers.pc, 0x0002);
+    }
+
+    #[test]
+    fn xor_n() {
+        let mut bus = TestBus::with_program(&[0xEE, 0xB2]);
+        let mut cpu = Z80::new();
+        cpu.registers.a = 0x5A;
+
+        assert_eq!(cpu.step(&mut bus), 7);
+        assert_eq!(cpu.registers.a, 0xE8);
+        assert_eq!(cpu.registers.f, 0xAC);
+        assert_eq!(cpu.registers.pc, 0x0002);
+    }
+
+    #[test]
+    fn or_n() {
+        let mut bus = TestBus::with_program(&[0xF6, 0x02]);
+        let mut cpu = Z80::new();
+        cpu.registers.a = 0x01;
+
+        assert_eq!(cpu.step(&mut bus), 7);
+        assert_eq!(cpu.registers.a, 0x03);
+        assert_eq!(cpu.registers.f, 0x04);
+        assert_eq!(cpu.registers.pc, 0x0002);
+    }
+
+    #[test]
+    fn cp_n() {
+        let mut bus = TestBus::with_program(&[0xFE, 0xB0]);
+        let mut cpu = Z80::new();
+        cpu.registers.a = 0x50;
+
+        assert_eq!(cpu.step(&mut bus), 7);
+        assert_eq!(cpu.registers.a, 0x50);
+        assert_eq!(cpu.registers.f, 0xA7);
+        assert_eq!(cpu.registers.pc, 0x0002);
     }
 }

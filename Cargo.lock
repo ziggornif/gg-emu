@@ -5,17 +5,10 @@ version = 4
 [[package]]
 name = "gg-app"
 version = "0.1.0"
-dependencies = [
- "gg-core",
-]
 
 [[package]]
 name = "gg-core"
 version = "0.1.0"
-dependencies = [
- "sn76489",
- "z80",
-]
 
 [[package]]
 name = "sn76489"
