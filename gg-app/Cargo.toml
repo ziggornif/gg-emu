@@ -6,4 +6,5 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
-gg-core.workspace = true
+# TODO: uncomment later
+# gg-core.workspace = true

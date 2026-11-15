@@ -1,4 +1,4 @@
-use crate::registers::{FLAG_C, FLAG_H, FLAG_PV, FLAG_S, FLAG_X, FLAG_Y, FLAG_Z};
+use crate::registers::{FLAG_C, FLAG_H, FLAG_N, FLAG_PV, FLAG_S, FLAG_X, FLAG_Y, FLAG_Z};
 
 /// Flags after a logical operation (AND, XOR, OR) producing `result`.
 ///
@@ -49,6 +49,24 @@ pub(crate) fn rlca(a: u8, flags: u8) -> (u8, u8) {
     let yx = result & (FLAG_Y | FLAG_X);
 
     (result, f | yx | carry)
+}
+
+/// Flags after CP: computes `a - n` and discards the result.
+///
+/// S, Z from the result; H is the borrow from bit 4, C the borrow from bit 7;
+/// P/V is the signed overflow; N is set. Y and X copy bits 5 and 3 of `n`, not of the result.
+#[must_use]
+pub(crate) fn cp(a: u8, n: u8) -> u8 {
+    let (result, borrow) = a.overflowing_sub(n);
+    let s = result & FLAG_S;
+    let c = if borrow { FLAG_C } else { 0 };
+    let z = if result == 0 { FLAG_Z } else { 0 };
+    let half = if (n & 0x0F) > (a & 0x0F) { FLAG_H } else { 0 };
+    let (_, overflow) = a.cast_signed().overflowing_sub(n.cast_signed());
+    let pv = if overflow { FLAG_PV } else { 0 };
+    let yx = n & (FLAG_Y | FLAG_X);
+
+    s | z | yx | half | pv | FLAG_N | c
 }
 
 #[cfg(test)]
@@ -106,5 +124,30 @@ mod tests {
     #[test]
     fn rlca_no_carry() {
         assert_eq!(rlca(0x6C, 0xFF), (0xD8, 0xCC));
+    }
+
+    #[test]
+    fn cp_z() {
+        assert_eq!(cp(0x10, 0x10), FLAG_Z | FLAG_N);
+    }
+
+    #[test]
+    fn cp_cs() {
+        assert_eq!(cp(0x10, 0x40), FLAG_S | FLAG_N | FLAG_C);
+    }
+
+    #[test]
+    fn cp_h() {
+        assert_eq!(cp(0x10, 0x01), FLAG_H | FLAG_N);
+    }
+
+    #[test]
+    fn cp_pv() {
+        assert_eq!(cp(0x50, 0xB0), FLAG_S | FLAG_Y | FLAG_PV | FLAG_N | FLAG_C);
+    }
+
+    #[test]
+    fn cp_yx_from_n() {
+        assert_eq!(cp(0x29, 0x28), FLAG_Y | FLAG_X | FLAG_N);
     }
 }
