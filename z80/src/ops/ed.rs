@@ -9,9 +9,23 @@ use crate::{
 impl Z80 {
     /// Executes an ED-prefixed opcode, already fetched after the 0xED prefix.
     pub(crate) fn exec_ed<B: Z80Bus>(&mut self, bus: &mut B, opcode: u8) {
-        let OpcodeFields { x, y, z, .. } = OpcodeFields::decode(opcode);
+        let OpcodeFields { x, y, z, p, q } = OpcodeFields::decode(opcode);
 
         match x {
+            1 => match (y, z) {
+                (_, 3) if q == 0 => {
+                    // LD (nn),rp[p]
+                    let address = self.fetch_word(bus);
+                    self.write_mem_word(bus, address, self.read_rp(p));
+                }
+                (_, 3) if q == 1 => {
+                    // LD rp[p],(nn)
+                    let address = self.fetch_word(bus);
+                    let value = self.read_mem_word(bus, address);
+                    self.write_rp(p, value);
+                }
+                _ => self.unimplemented_opcode(Some(0xED), opcode),
+            },
             2 => match (y, z) {
                 (6, 0) => {
                     // LDIR
@@ -87,5 +101,31 @@ mod tests {
         assert_eq!(bus.read(0x2001), 0xCD);
         assert_eq!(cpu.registers.pc, 0x0002);
         assert_eq!(cpu.registers.r, 4);
+    }
+
+    #[test]
+    fn ld_ind_nn_sp() {
+        let mut bus = TestBus::with_program(&[0xED, 0x73, 0x00, 0x80]);
+        let mut cpu = Z80::new();
+        cpu.registers.sp = 0xABCD;
+
+        assert_eq!(cpu.step(&mut bus), 20);
+        assert_eq!(bus.read(0x8000), 0xCD);
+        assert_eq!(bus.read(0x8001), 0xAB);
+        assert_eq!(cpu.registers.sp, 0xABCD);
+        assert_eq!(cpu.registers.pc, 0x0004);
+    }
+
+    #[test]
+    fn ld_bc_ind_nn() {
+        let mut bus = TestBus::with_program(&[0xED, 0x4B, 0x00, 0x80]);
+        let mut cpu = Z80::new();
+        cpu.registers.set_bc(0x1234);
+        bus.write(0x8000, 0xCD);
+        bus.write(0x8001, 0xAB);
+
+        assert_eq!(cpu.step(&mut bus), 20);
+        assert_eq!(cpu.registers.bc(), 0xABCD);
+        assert_eq!(cpu.registers.pc, 0x0004);
     }
 }
