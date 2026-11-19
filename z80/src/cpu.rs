@@ -189,10 +189,10 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "not implemented: opcode 0xFD at address 0x0000 not implemented")]
+    #[should_panic(expected = "not implemented: opcode 0xF7 at address 0x0000 not implemented")]
     fn not_implemented_opcode() {
         let mut bus = TestBus::new();
-        bus.write(0x0000, 0xFD); // 0xFD is the IY prefix, implemented late
+        bus.write(0x0000, 0xF7);
         let mut cpu = Z80::new();
 
         cpu.step(&mut bus);

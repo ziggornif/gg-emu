@@ -5,7 +5,7 @@
 use crate::{
     Z80, Z80Bus,
     alu::{add16, cp, dec8, inc8, logic_flags, rlca, rrca},
-    ops::OpcodeFields,
+    ops::{Index, OpcodeFields},
 };
 
 impl Z80 {
@@ -184,11 +184,25 @@ impl Z80 {
                     self.push_word(bus, self.registers.pc);
                     self.registers.pc = dest;
                 }
+                (3, 5) => {
+                    // DD prefix
+                    let ix_opcode = self.fetch_opcode(bus);
+                    self.exec_indexed(bus, ix_opcode, Index::Ix)
+                }
                 (4, 6) => {
                     // AND n
                     let n = self.fetch_byte(bus);
                     self.registers.a &= n;
                     self.registers.f = logic_flags(self.registers.a, true);
+                }
+                (5, 3) => {
+                    // EX DE, HL
+                    self.registers.ex_de_hl();
+                }
+                (5, 5) => {
+                    // ED prefix
+                    let ed_opcode = self.fetch_opcode(bus);
+                    self.exec_ed(bus, ed_opcode);
                 }
                 (5, 6) => {
                     // XOR n
@@ -207,19 +221,15 @@ impl Z80 {
                     self.registers.a |= n;
                     self.registers.f = logic_flags(self.registers.a, false);
                 }
+                (7, 5) => {
+                    // FD prefix
+                    let iy_opcode = self.fetch_opcode(bus);
+                    self.exec_indexed(bus, iy_opcode, Index::Iy)
+                }
                 (7, 6) => {
                     // CP n
                     let n = self.fetch_byte(bus);
                     self.registers.f = cp(self.registers.a, n);
-                }
-                (5, 3) => {
-                    // EX DE, HL
-                    self.registers.ex_de_hl();
-                }
-                (5, 5) => {
-                    // ED prefix
-                    let ed_opcode = self.fetch_opcode(bus);
-                    self.exec_ed(bus, ed_opcode);
                 }
                 (7, 1) => {
                     // LD SP, HL
