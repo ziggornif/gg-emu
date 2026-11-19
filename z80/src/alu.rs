@@ -72,17 +72,32 @@ pub(crate) fn inc8(value: u8, flags: u8) -> (u8, u8) {
     (result, f | s | z | half | pv | yx)
 }
 
+/// Flags shared by RLCA/RRCA/RLA/RRA: S, Z, P/V preserved from `flags`, H and N reset,
+/// Y and X from `result`, C = `carry` (the bit rotated out, already in bit 0).
+fn rotate_a_flags(result: u8, carry: u8, flags: u8) -> u8 {
+    let f = flags & (FLAG_S | FLAG_Z | FLAG_PV);
+    let yx = result & (FLAG_Y | FLAG_X);
+    f | yx | carry
+}
+
 /// RLCA: rotates `a` left, bit 7 goes to both bit 0 and C. Returns `(result, flags)`.
 ///
 /// S, Z and P/V are preserved from `flags`; H and N are reset; Y and X copy bits 5 and 3 of the result.
 #[must_use]
 pub(crate) fn rlca(a: u8, flags: u8) -> (u8, u8) {
-    let f = flags & (FLAG_S | FLAG_Z | FLAG_PV);
     let result = a.rotate_left(1);
     let carry = a >> 7;
-    let yx = result & (FLAG_Y | FLAG_X);
+    (result, rotate_a_flags(result, carry, flags))
+}
 
-    (result, f | yx | carry)
+/// RRCA: rotates `a` right, bit 0 goes to both bit 7 and C. Returns `(result, flags)`.
+///
+/// S, Z and P/V are preserved from `flags`; H and N are reset; Y and X copy bits 5 and 3 of the result.
+#[must_use]
+pub(crate) fn rrca(a: u8, flags: u8) -> (u8, u8) {
+    let result = a.rotate_right(1);
+    let carry = a & 0x01;
+    (result, rotate_a_flags(result, carry, flags))
 }
 
 /// Flags after CP: computes `a - n` and discards the result.
@@ -158,6 +173,16 @@ mod tests {
     #[test]
     fn rlca_no_carry() {
         assert_eq!(rlca(0x6C, 0xFF), (0xD8, 0xCC));
+    }
+
+    #[test]
+    fn rrca_carry() {
+        assert_eq!(rrca(0x9B, 0xFF), (0xCD, 0xCD));
+    }
+
+    #[test]
+    fn rrca_no_carry() {
+        assert_eq!(rrca(0x6A, 0xFF), (0x35, 0xE4));
     }
 
     #[test]

@@ -4,7 +4,7 @@
 
 use crate::{
     Z80, Z80Bus,
-    alu::{add16, cp, dec8, inc8, logic_flags, rlca},
+    alu::{add16, cp, dec8, inc8, logic_flags, rlca, rrca},
     ops::OpcodeFields,
 };
 
@@ -37,6 +37,12 @@ impl Z80 {
                 (1, 2) => {
                     // LD A, (BC)
                     self.registers.a = self.read_mem(bus, self.registers.bc());
+                }
+                (1, 7) => {
+                    // RRCA
+                    let (a, flags) = rrca(self.registers.a, self.registers.f);
+                    self.registers.a = a;
+                    self.registers.f = flags;
                 }
                 (2, 2) => {
                     // LD (DE), A
@@ -700,6 +706,19 @@ mod tests {
         assert_eq!(cpu.step(&mut bus), 4);
         assert_eq!(cpu.registers.a, 0x39);
         assert_eq!(cpu.registers.f, 0xED);
+        assert_eq!(cpu.registers.pc, 0x0001);
+    }
+
+    #[test]
+    fn rrca() {
+        let mut bus = TestBus::with_program(&[0x0F]);
+        let mut cpu = Z80::new();
+        cpu.registers.a = 0x6A;
+        cpu.registers.f = 0xFF;
+
+        assert_eq!(cpu.step(&mut bus), 4);
+        assert_eq!(cpu.registers.a, 0x35);
+        assert_eq!(cpu.registers.f, 0xE4);
         assert_eq!(cpu.registers.pc, 0x0001);
     }
 
