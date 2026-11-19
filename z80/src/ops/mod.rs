@@ -7,6 +7,7 @@ use crate::{
 
 mod base;
 mod ed;
+mod indexed;
 
 impl Z80 {
     /// Reads the operand at index `n` of the r[] table: B, C, D, E, H, L, (HL), A.
@@ -144,5 +145,22 @@ impl OpcodeFields {
         let q = y & 1;
 
         Self { x, y, z, p, q }
+    }
+}
+
+/// Index register selected by a DD (IX) or FD (IY) prefix.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Index {
+    Ix,
+    Iy,
+}
+
+impl Index {
+    /// The prefix byte that selects this index register.
+    fn prefix(self) -> u8 {
+        match self {
+            Self::Ix => 0xDD,
+            Self::Iy => 0xFD,
+        }
     }
 }
