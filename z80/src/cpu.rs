@@ -192,7 +192,7 @@ mod tests {
     #[should_panic(expected = "not implemented: opcode 0xF7 at address 0x0000 not implemented")]
     fn not_implemented_opcode() {
         let mut bus = TestBus::new();
-        bus.write(0x0000, 0xF7);
+        bus.write(0x0000, 0xF7); // 0xF7 = RST 30h, implemented late
         let mut cpu = Z80::new();
 
         cpu.step(&mut bus);
