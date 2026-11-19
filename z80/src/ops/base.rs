@@ -235,6 +235,14 @@ impl Z80 {
                         self.registers.pc = dest;
                     }
                 }
+                (_, 4) => {
+                    // CALL cc[y], nn
+                    let dest = self.fetch_word(bus);
+                    if self.check_cc(y) {
+                        self.push_word(bus, self.registers.pc);
+                        self.registers.pc = dest;
+                    }
+                }
                 (_, 5) if q == 0 => {
                     // PUSH rp2[p]
                     let val = self.read_rp2(p);
@@ -822,5 +830,31 @@ mod tests {
         assert_eq!(bus.read(0x1234), 0x80);
         assert_eq!(cpu.registers.f, 0x95);
         assert_eq!(cpu.registers.pc, 0x0001);
+    }
+
+    #[test]
+    fn call_nz_taken() {
+        let mut bus = TestBus::with_program(&[0xC4, 0x34, 0x12]);
+        let mut cpu = Z80::new();
+        cpu.registers.sp = 0x8000;
+        cpu.registers.f = !FLAG_Z;
+
+        assert_eq!(cpu.step(&mut bus), 17);
+        assert_eq!(cpu.registers.sp, 0x7FFE);
+        assert_eq!(cpu.registers.pc, 0x1234);
+        assert_eq!(bus.read(0x7FFE), 0x03);
+        assert_eq!(bus.read(0x7FFF), 0x00);
+    }
+
+    #[test]
+    fn call_nz_not_taken() {
+        let mut bus = TestBus::with_program(&[0xC4, 0x34, 0x12]);
+        let mut cpu = Z80::new();
+        cpu.registers.sp = 0x8000;
+        cpu.registers.f = FLAG_Z;
+
+        assert_eq!(cpu.step(&mut bus), 10);
+        assert_eq!(cpu.registers.pc, 0x0003);
+        assert_eq!(cpu.registers.sp, 0x8000);
     }
 }
