@@ -196,6 +196,11 @@ impl Z80 {
                     self.registers.a ^= n;
                     self.registers.f = logic_flags(self.registers.a, false);
                 }
+                (6, 3) => {
+                    // DI
+                    self.iff1 = false;
+                    self.iff2 = false;
+                }
                 (6, 6) => {
                     // OR n
                     let n = self.fetch_byte(bus);
@@ -856,5 +861,18 @@ mod tests {
         assert_eq!(cpu.step(&mut bus), 10);
         assert_eq!(cpu.registers.pc, 0x0003);
         assert_eq!(cpu.registers.sp, 0x8000);
+    }
+
+    #[test]
+    fn di() {
+        let mut bus = TestBus::with_program(&[0xF3]);
+        let mut cpu = Z80::new();
+        cpu.iff1 = true;
+        cpu.iff2 = true;
+
+        assert_eq!(cpu.step(&mut bus), 4);
+        assert!(!cpu.iff1);
+        assert!(!cpu.iff2);
+        assert_eq!(cpu.registers.pc, 0x0001);
     }
 }

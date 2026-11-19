@@ -2,14 +2,13 @@
 //!
 //! The CPU only talks to the outside world through [`Z80Bus`].
 
-// TODO: remove once interrupts use iff1/iff2/halted/im
-#![allow(dead_code)]
-
 use crate::{Z80Bus, registers::Registers};
 
 /// Maskable interrupt mode, set by the `IM 0/1/2` instructions.
 ///
 /// Says how an INT is serviced, not whether it is accepted (that is IFF1).
+// TODO: remove once IM 0/1/2 are implemented
+#[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq)]
 enum Im {
     /// Executes the instruction placed on the data bus by the device. Mode at reset.
@@ -29,12 +28,16 @@ pub struct Z80 {
     /// CPU registers.
     pub(crate) registers: Registers,
     /// Maskable interrupts enabled right now.
-    iff1: bool,
+    pub(crate) iff1: bool,
     /// Copy of IFF1 saved when an NMI clears it, restored by `RETN`.
-    iff2: bool,
+    pub(crate) iff2: bool,
     /// Set by `HALT`: the CPU waits for an interrupt without advancing PC.
+    // TODO: remove once HALT and interrupt handling use it
+    #[allow(dead_code)]
     pub(crate) halted: bool,
     /// Current maskable interrupt mode.
+    // TODO: remove once IM 0/1/2 and interrupt handling use it
+    #[allow(dead_code)]
     im: Im,
     /// T-states spent by the current instruction. Reset by `step()`, returned at its end.
     pub(crate) cycles: u8,
